@@ -6,6 +6,24 @@ require_once "CarritoBBDD.php";
 
 session_start();
 
+if (isset($_SESSION['usuario'])) {
+    $idUsuario = $_SESSION['usuario']['idusuario'];
+
+    // ELIMINAR PRODUCTO DEL CARRITO
+    if (isset($_POST['eliminarProducto'])) {
+        $carritoBBDD = new CarritoBBDD();
+        $conexion = $carritoBBDD->getConexion();
+        $idProducto = $_POST['idproducto'];
+
+        // Borra la fila del carrito usando PDO
+        $consultaEliminar = $conexion->prepare("DELETE FROM carrito WHERE idusuario = ? AND idproducto = ?");
+        $consultaEliminar->execute([$idUsuario, $idProducto]);
+
+        header("Location: carrito.php");
+        exit;
+    }
+}
+
 ?>
 
     <style>
@@ -117,7 +135,6 @@ if (isset($_SESSION['usuario'])) {
 
     // Abro la conexión
     $productoBBDD = new ProductoBBDD();
-
     $productosBD = $productoBBDD->getProductos();
 
     $idUsuario = $_SESSION['usuario']['idusuario'];
@@ -127,34 +144,10 @@ if (isset($_SESSION['usuario'])) {
         exit;
     }
 
-
     $carritoBBDD = new CarritoBBDD();
     $conexion = $carritoBBDD->getConexion();
 
     $productosCarrito = array();
-
-    if (isset($_POST['eliminarProducto'])) {
-        $idProducto = $_POST['idproducto'];
-
-
-        // Obtener la cantidad que tenía en el carrito
-        $sqlCantidad = $conexion->query("SELECT cantidad FROM carrito WHERE idusuario = $idUsuario AND idproducto = $idProducto");
-
-        $cantidadEnCarrito = 0;
-        if ($fila = $sqlCantidad->fetch(PDO::FETCH_ASSOC)) {
-            $cantidadEnCarrito = $fila['cantidad'];
-        }
-
-
-        // Borra la fila del carrito usando PDO
-        $consultaEliminar = $conexion->prepare("DELETE FROM carrito WHERE idusuario = ? AND idproducto = ?");
-        $consultaEliminar->execute([$idUsuario, $idProducto]);
-
-
-        header("Location: carrito.php"); // recargar página
-        exit;
-    }
-
 
     $nombre = $_SESSION['usuario']['nombre'];
     echo "Bienvenido: " . $nombre . "<br>";
@@ -170,10 +163,7 @@ if (isset($_SESSION['usuario'])) {
 
     echo "<h2>Carrito de la compra</h2>";
 
-
-
-
-
+    // AÑADIR PRODUCTO AL CARRITO
     if (isset($_POST['anadidoACarrito'])) {
         if (isset($_POST['idproducto'], $_POST['cantidad'])) {
             $idProducto = $_POST['idproducto'];
@@ -271,26 +261,22 @@ if (isset($_SESSION['usuario'])) {
 
     <?php
 
-// Finalizar compra
+    // FINALIZAR COMPRA
     if (isset($_POST['finalizarCompra'])) {
         $conexion = $carritoBBDD->getConexion();
         $conexion->beginTransaction();
         $error = false;
 
-
         $totalCompra = 0;
-
 
         foreach ($productosCarrito as $producto) {
             $pId = $producto['idproducto'];
             $cantidad = $producto['cantidad'];
 
-
             // Obtener stock actual del producto
             $resultadoStock = $conexion->query("SELECT stock FROM productos WHERE idproducto = $pId");
             $filaStock = $resultadoStock->fetch(PDO::FETCH_ASSOC);
             $stock = $filaStock['stock'];
-
 
             if ($stock >= $cantidad) {
                 // Actualizar stock usando PDO
@@ -307,9 +293,7 @@ if (isset($_SESSION['usuario'])) {
                 $error = true;
                 break;
             }
-
         }
-
 
         if ($error) {
             $conexion->rollback();
@@ -321,14 +305,11 @@ if (isset($_SESSION['usuario'])) {
                 $consultaEliminarCarrito->execute([$idUsuario, $producto['idproducto']]);
             }
 
-
             $conexion->commit();
-
 
             // Guardar datos en sesión para factura
             $_SESSION['compra'] = $productosCarrito;
             $_SESSION['total_compra'] = $totalCompra;
-
 
             /** FACTURA **/
             $productosCarrito = [];
@@ -345,7 +326,6 @@ if (isset($_SESSION['usuario'])) {
                 exit;
             }
 
-
             echo "== TOTAL DE LA COMPRA ==" . "<br>" .
                     "-----------------------------------------------------------------------" . "<br>";
 
@@ -361,8 +341,8 @@ if (isset($_SESSION['usuario'])) {
             <a href="tienda.php">Regresar a la tienda</a> <?php
         }
     }
-} else { // Por si se mete alguien directamente en carrito.php sin haber inciiado sesión
-    echo "<h3 style='color: red;'>Donde vas? ve a registrarte o a iniciar sesión</h3>";
+} else { // Por si se mete alguien directamente en carrito.php sin haber iniciado sesión
+    echo "<h3 style='color: red;'>¿Dónde vas? ve a registrarte o a iniciar sesión</h3>";
     ?>
     <form method="post" action="index.php">
         <input type="submit" value="Iniciar Sesión">

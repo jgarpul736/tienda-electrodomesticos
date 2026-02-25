@@ -93,7 +93,6 @@ session_start();
             overflow-x: auto;
         }
 
-
         /* --- Inputs estilizados --- */
         input[type="text"], input[type="number"] {
             width: 100%;
@@ -116,19 +115,23 @@ session_start();
             order: -1;         /* se coloca antes que el formulario y la tabla */
             text-align: center;
             font-weight: bold;
-            font-size: 22px;
+            font-size: 18px;
+            padding: 15px;
             margin-bottom: 20px;
+            border-radius: 8px;
         }
 
-
         .mensaje.exito {
-            color: #16a34a;
+            color: #165e29;
+            background-color: #dcfce7;
+            border: 2px solid #16a34a;
         }
 
         .mensaje.error {
-            color: #dc2626;
+            color: #991b1b;
+            background-color: #fee2e2;
+            border: 2px solid #dc2626;
         }
-
 
     </style>
 
@@ -142,102 +145,95 @@ if (isset($_SESSION['usuario'])) {
     </form>
     <?php
 
-?>
-
-
-<h2>¿Qué producto quieres añadir?</h2>
-<div class="contenedor-flex">
-
-    <div class="formulario-lateral">
-    <form method="post" action="insertarProducto.php">
-
-        <label for="nombre">Nombre: </label>
-        <input type="text" id="name" name="nameInsertar" required/><br><br>
-
-        <label for="marca">Marca: </label>
-        <input type="text" id="marca" name="marcaInsertar" required/><br><br>
-
-        <label for="modelo">Modelo: </label>
-        <input type="text" id="modelo" name="modeloInsertar" required/><br><br>
-
-        <label for="precio">Precio: </label>
-        <input type="text" id="precio" name="precioInsertar" required/><br><br>
-
-        <label for="stock">Stock: </label>
-        <input type="text" id="stock" name="stockInsertar" required/><br><br>
-
-        <input type="submit" value="Insertar Producto" name="InsertarProducto">
-    </form>
-    </div>
-<?php
-    if(isset($_POST["InsertarProducto"])){
-        $nombreInsertar = $_POST['nameInsertar'];
-        $marcaInsertar = $_POST['marcaInsertar'];
-        $modeloInsertar = $_POST['modeloInsertar'];
-        $precioInsertar = $_POST['precioInsertar'];
-        $stockInsertar = $_POST['stockInsertar'];
-
-        $producto = new Producto(null, $nombreInsertar, $marcaInsertar, $modeloInsertar, $precioInsertar, $stockInsertar);
-        $productoBBDD = new ProductoBBDD();
-
-        // Insertar solo este producto
-        if (!$productoBBDD->existeProducto($producto->nombre, $producto->marca, $producto->modelo)) {
-            $productoBBDD->insertarProducto($producto);
-            echo '<div class="mensaje exito">Producto insertado correctamente.</div>';
-        } else {
-            echo '<div class="mensaje error">El producto ya existe en la base de datos.</div>';
-        }
-
-    }
-
-
-    // --- Conexión y carga de productos ---
-    $productoBBDD = new ProductoBBDD();
-
-    // Obtiene todos los productos desde la base de datos
-    $productosBD = $productoBBDD->getProductos();
     ?>
-<div class="tabla-lateral">
-    <table class="tabla-productos">
-        <tr>
-            <th>Nombre</th>
-            <th>Marca</th>
-            <th>Modelo</th>
-            <th>Precio (€)</th>
-            <th>Stock</th>
-        </tr>
+
+    <h2>¿Qué producto quieres añadir?</h2>
+    <div class="contenedor-flex">
+
+        <div class="formulario-lateral">
+            <form method="post" action="insertarProducto.php">
+
+                <label for="nombre">Nombre: </label>
+                <input type="text" id="name" name="nameInsertar" required/><br><br>
+
+                <label for="marca">Marca: </label>
+                <input type="text" id="marca" name="marcaInsertar" required/><br><br>
+
+                <label for="modelo">Modelo: </label>
+                <input type="text" id="modelo" name="modeloInsertar" required/><br><br>
+
+                <label for="precio">Precio (ej: 99.99): </label>
+                <input type="text" id="precio" name="precioInsertar" placeholder="99.99" required/><br><br>
+
+                <label for="stock">Stock (ej: 10): </label>
+                <input type="text" id="stock" name="stockInsertar" placeholder="10" required/><br><br>
+
+                <input type="submit" value="Insertar Producto" name="InsertarProducto">
+            </form>
+        </div>
 
         <?php
-        foreach ($productosBD as $producto):
+        // PROCESAR INSERCIÓN CON VALIDACIÓN
+        if(isset($_POST["InsertarProducto"])){
+            $nombreInsertar = $_POST['nameInsertar'];
+            $marcaInsertar = $_POST['marcaInsertar'];
+            $modeloInsertar = $_POST['modeloInsertar'];
+            $precioInsertar = $_POST['precioInsertar'];
+            $stockInsertar = $_POST['stockInsertar'];
 
-            ?>
+            $producto = new Producto(null, $nombreInsertar, $marcaInsertar, $modeloInsertar, $precioInsertar, $stockInsertar);
+            $productoBBDD = new ProductoBBDD();
 
+            // Primero validar que no existe
+            if ($productoBBDD->existeProducto($producto->nombre, $producto->marca, $producto->modelo)) {
+                echo '<div class="mensaje error">❌ El producto ya existe en la base de datos.</div>';
+            } else {
+                // Insertar y obtener respuesta con validación
+                $respuesta = $productoBBDD->insertarProducto($producto);
 
-            <form method="post" action="carrito.php">
+                if ($respuesta['exito']) {
+                    echo '<div class="mensaje exito">' . $respuesta['mensaje'] . '</div>';
+                } else {
+                    echo '<div class="mensaje error">' . $respuesta['mensaje'] . '</div>';
+                }
+            }
+        }
+
+        // --- Conexión y carga de productos ---
+        $productoBBDD = new ProductoBBDD();
+        $productosBD = $productoBBDD->getProductos();
+        ?>
+
+        <div class="tabla-lateral">
+            <table class="tabla-productos">
                 <tr>
-                    <td><?php echo htmlspecialchars($producto['nombre']); ?></td>
-                    <td><?php echo htmlspecialchars($producto['marca']); ?></td>
-                    <td><?php echo htmlspecialchars($producto['modelo']); ?></td>
-                    <td><?php echo htmlspecialchars($producto['precio']); ?></td>
-                    <td><?php echo htmlspecialchars($producto['stock']); ?></td>
-
-                    <input type="hidden" name="idproducto"
-                           value="<?php echo htmlspecialchars($producto['idproducto']); ?>">
+                    <th>Nombre</th>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th>Precio (€)</th>
+                    <th>Stock</th>
                 </tr>
-            </form>
-        <?php endforeach; ?>
-    </table>
 
-
-</div>
-</div>
+                <?php
+                foreach ($productosBD as $producto):
+                    ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($producto['nombre']); ?></td>
+                        <td><?php echo htmlspecialchars($producto['marca']); ?></td>
+                        <td><?php echo htmlspecialchars($producto['modelo']); ?></td>
+                        <td><?php echo htmlspecialchars($producto['precio']); ?></td>
+                        <td><?php echo htmlspecialchars($producto['stock']); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+        </div>
+    </div>
 
     <a href="tienda.php" style="background-color: #4f46e5; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none; margin-bottom: 10px">Volver a la tienda</a>
     <a href="actualizarProductos.php" style="background-color: #4f46e5; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none;  margin-bottom: 10px">Actualizar Productos</a>
-    <a href="eliminarProductos.php" style="background-color: #4f46e5; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none"">Eliminar Productos</a>
-<?php
+    <a href="eliminarProductos.php" style="background-color: #4f46e5; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none">Eliminar Productos</a>
 
-
+    <?php
 } else {
     echo "<h3 style='color: red;'>¿Dónde vas? Ve a registrarte o iniciar sesión</h3>";
     ?>

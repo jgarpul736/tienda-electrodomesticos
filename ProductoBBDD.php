@@ -25,7 +25,32 @@ class ProductoBBDD{
         return $fila ? (int)$fila['reservado'] : 0;
     }
 
+    // Validar que es número
+    private function esNumeroValido($valor) {
+        return is_numeric($valor) && $valor > 0;
+    }
+
+    // Obtener mensaje de error personalizado
+    public function obtenerErrorPrecioStock($precio, $stock) {
+        if (!$this->esNumeroValido($precio)) {
+            return "❌ El precio debe ser un número válido (mayor que 0). Ej: 99.99 o 100";
+        }
+        if (!$this->esNumeroValido($stock)) {
+            return "❌ El stock debe ser un número entero válido (mayor que 0). Ej: 10 o 50";
+        }
+        return null; // Sin errores
+    }
+
     public function insertarProducto($producto) {
+        // VALIDACIÓN PERSONALIZADA
+        $errorValidacion = $this->obtenerErrorPrecioStock($producto->precio, $producto->stock);
+        if ($errorValidacion) {
+            return [
+                'exito' => false,
+                'mensaje' => $errorValidacion
+            ];
+        }
+
         $consultaInsertar = $this->conexion->prepare(
             "INSERT INTO productos (nombre, marca, modelo, precio, stock) VALUES (?, ?, ?, ?, ?)"
         );
@@ -33,8 +58,8 @@ class ProductoBBDD{
         $nombre = $producto->nombre;
         $marca = $producto->marca;
         $modelo = $producto->modelo;
-        $precio = $producto->precio;
-        $stock = $producto->stock;
+        $precio = (float)$producto->precio;
+        $stock = (int)$producto->stock;
 
         // BindParam con los 5 parámetros correctos
         $consultaInsertar->bindParam(1, $nombre);
@@ -43,8 +68,26 @@ class ProductoBBDD{
         $consultaInsertar->bindParam(4, $precio);
         $consultaInsertar->bindParam(5, $stock);
 
-        $consultaInsertar->execute(); // Devuelve un booleano
+        try {
+            $resultado = $consultaInsertar->execute();
 
+            if ($resultado) {
+                return [
+                    'exito' => true,
+                    'mensaje' => "✅ Producto insertado correctamente."
+                ];
+            } else {
+                return [
+                    'exito' => false,
+                    'mensaje' => "❌ Error al insertar el producto."
+                ];
+            }
+        } catch (PDOException $e) {
+            return [
+                'exito' => false,
+                'mensaje' => "❌ Error en la base de datos: " . $e->getMessage()
+            ];
+        }
     }
 
     public function getProductos(){
@@ -73,7 +116,21 @@ class ProductoBBDD{
     }
 
     public function actualizarProductos($idproducto, $nombre, $marca, $modelo, $precio, $stock) {
+        // VALIDACIÓN PERSONALIZADA
+        $errorValidacion = $this->obtenerErrorPrecioStock($precio, $stock);
+        if ($errorValidacion) {
+            return [
+                'exito' => false,
+                'mensaje' => $errorValidacion
+            ];
+        }
+
         $consultaActualizar = $this->conexion->prepare("UPDATE productos SET nombre = ?, marca = ?, modelo = ?, precio = ?, stock = ? WHERE idproducto = ?");
+
+        // Convertir a tipos correctos
+        $precio = (float)$precio;
+        $stock = (int)$stock;
+        $idproducto = (int)$idproducto;
 
         $consultaActualizar->bindParam(1, $nombre);
         $consultaActualizar->bindParam(2, $marca);
@@ -82,7 +139,26 @@ class ProductoBBDD{
         $consultaActualizar->bindParam(5, $stock);
         $consultaActualizar->bindParam(6, $idproducto);
 
-        $consultaActualizar->execute();
+        try {
+            $resultado = $consultaActualizar->execute();
+
+            if ($resultado) {
+                return [
+                    'exito' => true,
+                    'mensaje' => "✅ Producto actualizado correctamente."
+                ];
+            } else {
+                return [
+                    'exito' => false,
+                    'mensaje' => "❌ Error al actualizar el producto."
+                ];
+            }
+        } catch (PDOException $e) {
+            return [
+                'exito' => false,
+                'mensaje' => "❌ Error en la base de datos: " . $e->getMessage()
+            ];
+        }
     }
 
     public function existeProducto($nombre, $marca, $modelo){
@@ -99,7 +175,5 @@ class ProductoBBDD{
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
         return $fila && $fila['total'] > 0;
     }
-
-
 
 }

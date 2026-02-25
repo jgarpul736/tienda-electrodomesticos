@@ -1,0 +1,74 @@
+# version: '3' (obsoleto)
+services:
+
+  #-------------------------------------------------------------------------
+  # SERVICIO SERVIDOR WEB (php:7.4-apache con mysqli y código WP descargado
+  #-------------------------------------------------------------------------
+  web:
+    # IMAGEN PERSONALIZADA USADA (ponemos el usuario de docker hub)
+    image: jesusgarpul/php-conapache-conxdebug:8.2
+    # NOMBRE QUE LE VOY A DAR AL CONTENEDOR
+    container_name: web
+    # REDIRECCIÓN DE PUERTOS
+    ports:
+      - 8888:80
+    # SERVICIOS QUE TIENEN QUE ARRANCAR ANTES DE ARRANCAR ESTE
+    depends_on:
+      - bbdd
+
+    volumes: # Creo un volumen, donde el origen es mi directorio actual (con todo lo que tenga) y el destino la carpeta de apache /var/www/html
+      - type: bind
+        source: "."
+        target: /var/www/html
+    # REDES A USAR
+    networks:
+      - ejemplored
+
+  #--------------------------------------------------
+  # SERVICIO SERVIDOR DE BASE DE DATOS MARIADB
+  #--------------------------------------------------
+
+  # NOMBRE DEL SERVICIO
+  bbdd:
+    # IMAGEN USADA
+    image: mariadb
+    # NOMBRE QUE LE VOY A DAR AL CONTENEDOR
+    container_name: bd
+    # LISTA DE VALORES DE ENTORNO CON SUS VALORES
+    environment:
+      MYSQL_ROOT_PASSWORD: Ciclo2gs
+      MYSQL_DATABASE: tienda
+      MYSQL_USER: root
+      MYSQL_PASSWORD:
+    # REDIRECCIÓN DE PUERTOS
+    ports:
+      - 3307:3306
+    # VOLÚMENES A USAR POR EL CONTENEDOR
+    volumes:
+      # DOCKER VOLUME
+      - data:/var/lib/mysql
+      # Dir actual:/a partir de los dos puntos todo igual (importante el nombre del fichero sql) esto para incorporar la bbdd
+      - ./bbdd.sql:/docker-entrypoint-initdb.d/bbdd.sql
+    # REDES A USAR
+    networks:
+      - ejemplored
+
+# DEFINICIÓN DE VOLÚMENES DOCKER A USAR POR LOS SERVICIOS (OPCIONAL)
+volumes:
+  data:
+    # TIPO DE DRIVER
+    driver: local
+
+# DEFINICIÓN DE LAS REDES A USAR POR LOS SERVICIOS (OPCIONAL)
+networks:
+  # NOMBRE DE LA RED
+  ejemplored:
+    # DRIVER DE LA RED
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/16
+
+# Creación de la aplicación multicapa
+# docker compose up -d

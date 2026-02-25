@@ -1,0 +1,10 @@
+Admin:
+
+jesus@gmail.com
+1234
+
+
+Usuarios normales:
+
+antonio@gmail.com
+1234

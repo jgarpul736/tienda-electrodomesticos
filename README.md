@@ -202,7 +202,7 @@ ports:
 
 ## 👨‍💼 Autor
 
-Proyecto realizado como tarea de clase en el Ciclo Formativo de Grado Superior.
+Jesús García Pulido
 
 ## 📄 Licencia
 
